@@ -251,7 +251,7 @@ alexa.app = function(name, endpoint) {
       try {
         var key;
         // Copy all the session attributes from the request into the response so they persist.
-        // The Alexa API doesn't think session variables should persist for the entire 
+        // The Alexa API doesn't think session variables should persist for the entire
         // duration of the session, but I do.
         if (request.sessionAttributes && self.persistentSession) {
           for (key in request.sessionAttributes) {
@@ -260,34 +260,36 @@ alexa.app = function(name, endpoint) {
         }
         var requestType = request.type();
         if (typeof self.pre == "function") {
-          self.pre(request, response, requestType);
+          self.pre(request, response, requestType, done);
         }
-        if (!response.resolved) {
-          if ("IntentRequest" === requestType) {
-            var intent = request_json.request.intent.name;
-            if (typeof self.intents[intent] != "undefined" && typeof self.intents[intent]["function"] == "function") {
-              if (false !== self.intents[intent]["function"](request, response)) {
-                response.send();
+        function done ( request, response, requestType ) {
+          if (!response.resolved) {
+            if ("IntentRequest" === requestType) {
+              var intent = request_json.request.intent.name;
+              if (typeof self.intents[intent] != "undefined" && typeof self.intents[intent]["function"] == "function") {
+                if (false !== self.intents[intent]["function"](request, response)) {
+                  response.send();
+                }
+              } else {
+                throw "NO_INTENT_FOUND";
+              }
+            } else if ("LaunchRequest" === requestType) {
+              if (typeof self.launchFunc == "function") {
+                if (false !== self.launchFunc(request, response)) {
+                  response.send();
+                }
+              } else {
+                throw "NO_LAUNCH_FUNCTION";
+              }
+            } else if ("SessionEndedRequest" === requestType) {
+              if (typeof self.sessionEndedFunc == "function") {
+                if (false !== self.sessionEndedFunc(request, response)) {
+                  response.send();
+                }
               }
             } else {
-              throw "NO_INTENT_FOUND";
+              throw "INVALID_REQUEST_TYPE";
             }
-          } else if ("LaunchRequest" === requestType) {
-            if (typeof self.launchFunc == "function") {
-              if (false !== self.launchFunc(request, response)) {
-                response.send();
-              }
-            } else {
-              throw "NO_LAUNCH_FUNCTION";
-            }
-          } else if ("SessionEndedRequest" === requestType) {
-            if (typeof self.sessionEndedFunc == "function") {
-              if (false !== self.sessionEndedFunc(request, response)) {
-                response.send();
-              }
-            }
-          } else {
-            throw "INVALID_REQUEST_TYPE";
           }
         }
       } catch (e) {
